@@ -1,7 +1,6 @@
 use axum::Router;
 use core::time;
-use music_backend::{Config, create_app_state, create_router as create_api_router};
-use std::sync::Arc;
+use music_backend::create_router as create_api_router;
 use tower_http::{
     cors::CorsLayer, limit::RequestBodyLimitLayer, timeout::TimeoutLayer, trace::TraceLayer,
 };
