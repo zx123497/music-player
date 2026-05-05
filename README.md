@@ -1,1 +1,1 @@
-# music-player
+# Home Music Streaming for PPLab
