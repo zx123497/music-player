@@ -33,9 +33,11 @@ pub struct RedisConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct S3Config {
     pub endpoint: String,
+    pub region: String,
     pub access_key: String,
     pub secret_key: String,
     pub bucket: String,
+    pub use_path_style: bool,
 }
 
 #[derive(Debug, Deserialize, Clone)]
