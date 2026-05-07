@@ -22,7 +22,11 @@ pub struct ServerConfig {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DatabaseConfig {
-    pub url: String,
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub password: String,
+    pub name: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]

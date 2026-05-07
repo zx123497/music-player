@@ -1,0 +1,30 @@
+use sqlx::FromRow;
+
+#[derive(Debug, FromRow)]
+pub struct Artist {
+    pub id: i64,
+    pub name: String,
+}
+
+#[derive(Debug, FromRow)]
+pub struct Album {
+    pub id: i64,
+    pub artist_id: i64,
+    pub title: String,
+}
+
+#[derive(Debug, FromRow)]
+pub struct Track {
+    pub id: i64,
+    pub album_id: i64,
+    pub title: String,
+    pub duration_seconds: i32,
+}
+
+#[derive(Debug, FromRow)]
+pub struct TrackFullMetadata {
+    pub title: String,
+    pub artist_name: String,
+    pub album_name: String,
+    pub duration: i32,
+}

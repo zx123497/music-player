@@ -1,17 +1,38 @@
 use crate::config::Config;
 use aws_sdk_s3::Client as S3Client;
 use aws_sdk_s3::config::{Builder, Credentials, Region};
+use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
     pub config: Config,
     pub s3_client: S3Client,
+    pub pg_pool: PgPool,
 }
 
 pub async fn create_app_state(config: Config) -> Arc<AppState> {
     let s3_client = create_s3_client(&config.s3).await;
-    Arc::new(AppState { config, s3_client })
+
+    let database_url = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        config.database.username,
+        config.database.password,
+        config.database.host,
+        config.database.port,
+        config.database.name
+    );
+    let pg_pool = PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&database_url)
+        .await
+        .expect("Failed to create PostgreSQL connection pool");
+
+    Arc::new(AppState {
+        config,
+        s3_client,
+        pg_pool,
+    })
 }
 
 async fn create_s3_client(config: &crate::config::S3Config) -> S3Client {
