@@ -14,14 +14,7 @@ pub struct AppState {
 pub async fn create_app_state(config: Config) -> Arc<AppState> {
     let s3_client = create_s3_client(&config.s3).await;
 
-    let database_url = format!(
-        "postgres://{}:{}@{}:{}/{}",
-        config.database.username,
-        config.database.password,
-        config.database.host,
-        config.database.port,
-        config.database.name
-    );
+    let database_url = config.database.url.clone();
     let pg_pool = PgPoolOptions::new()
         .max_connections(10)
         .connect(&database_url)

@@ -1,6 +1,8 @@
 use axum::Router;
 use core::time;
+use music_backend::create_app_state;
 use music_backend::create_router as create_api_router;
+
 use tower_http::{
     cors::CorsLayer, limit::RequestBodyLimitLayer, timeout::TimeoutLayer, trace::TraceLayer,
 };
@@ -10,7 +12,11 @@ async fn main() {
     let timeout = time::Duration::from_secs(30);
     let status_code = axum::http::StatusCode::REQUEST_TIMEOUT;
     let app = Router::new()
-        .nest("/api/v1", create_api_router())
+        .nest(
+            "/api/v1",
+            create_api_router()
+                .with_state(create_app_state(music_backend::Config::load("config.toml")).await),
+        )
         .layer(CorsLayer::permissive())
         .layer(RequestBodyLimitLayer::new(10 * 1024 * 1024)) // 10 MB limit
         .layer(TimeoutLayer::with_status_code(status_code, timeout))

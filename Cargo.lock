@@ -1696,6 +1696,7 @@ version = "0.1.0"
 dependencies = [
  "aws-sdk-s3",
  "axum",
+ "dotenvy",
  "figment",
  "serde",
  "serde_json",
