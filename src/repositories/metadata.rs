@@ -7,7 +7,7 @@ pub async fn create_artist(
 ) -> Result<Artist, sqlx::Error> {
     let artist = sqlx::query_as::<_, Artist>(
         r#"
-        INSERT INTO artists (name)
+        INSERT INTO metadata.artists (name)
         VALUES ($1)
         RETURNING id, name
         "#,

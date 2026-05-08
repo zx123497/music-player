@@ -1,5 +1,10 @@
 -- Add migration script here
-create schema metadata
+CREATE SCHEMA IF NOT EXISTS metadata;
+
+-- Drop existing tables if they exist (for development)
+DROP TABLE IF EXISTS metadata.tracks;
+DROP TABLE IF EXISTS metadata.albums;
+DROP TABLE IF EXISTS metadata.artists;
 
 -- Enable UUID extension if you prefer UUIDs over Serial IDs
 -- CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
