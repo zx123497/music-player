@@ -36,3 +36,8 @@ pub struct TrackFullMetadata {
 pub struct CreateArtistRequest {
     pub name: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct CreateUploadPresignedUrlRequest {
+    pub file_name: String,
+}
