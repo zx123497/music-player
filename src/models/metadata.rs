@@ -18,8 +18,10 @@ pub struct Album {
 pub struct Track {
     pub id: i64,
     pub album_id: i64,
+    pub artist_id: i64,
     pub title: String,
     pub duration_seconds: i32,
+    pub file_path: String,
 }
 
 #[derive(Debug, FromRow, Serialize)]
