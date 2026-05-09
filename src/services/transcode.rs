@@ -1,6 +1,8 @@
 use crate::state;
 use aws_sdk_s3::presigning::PresigningConfig;
-use mp3_metadata;
+use mp3_duration;
+use std::io::Write;
+use tempfile::NamedTempFile;
 use uuid::Uuid;
 
 pub async fn get_upload_presigned_url(
@@ -34,19 +36,19 @@ pub async fn get_mp3_duration(
         .s3_client
         .get_object()
         .bucket(&state.config.s3.bucket)
-        .key(object_key)
-        .range("bytes=0-262143") // First 256KB
+        .key(object_key) // First 256KB
         .send()
         .await?;
 
     let bytes = response.body.collect().await?.into_bytes();
 
-    // Parse MP3 metadata
-    let metadata = mp3_metadata::read_from_slice(&bytes)
-        .map_err(|e| format!("Failed to parse MP3 metadata: {}", e))?;
+    // Write the full object to a temporary file for analysis
+    let mut temp_file = NamedTempFile::new()?;
+    temp_file.write_all(&bytes)?;
+    temp_file.flush()?;
 
-    let duration_ms = metadata.duration.as_millis() as i32;
-    let duration_seconds = duration_ms / 1000;
+    let duration = mp3_duration::from_path(temp_file.path())?;
+    let duration_seconds = duration.as_secs() as i32;
 
     Ok(duration_seconds)
 }

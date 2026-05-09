@@ -15,4 +15,5 @@ tower-http = { version = "0.6.8", features = ["trace", "cors", "limit", "timeout
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "macros", "uuid"] }
 dotenvy = "0.15.7"
 uuid = { version = "1.23.1", features = ["v4", "serde"] }
-mp3-metadata = "0.3"
+mp3-duration = "0.1.10"
+tempfile = "3"
