@@ -1,9 +1,11 @@
-use crate::models::metadata::{CreateArtistRequest, CreateUploadPresignedUrlRequest};
+use crate::models::metadata::{
+    CreateAlbumRequest, CreateArtistRequest, CreateTrackRequest, CreateUploadPresignedUrlRequest,
+    PresignedUrlResponse, Track,
+};
 use crate::services::{metadata as metadata_service, transcode as transcode_service};
 use crate::state::AppState;
 use axum::{
     Router,
-    extract::Multipart,
     extract::{Json, State},
     http::StatusCode,
     response::Response,
@@ -15,9 +17,10 @@ use uuid::Uuid;
 pub fn create_router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/artist", post(create_artist))
+        .route("/album", post(create_album))
         .route("/artists", get(get_artists))
-        .route("/tracks/upload", post(upload_track))
         .route("/tracks/presigned-url", post(get_presigned_url))
+        .route("/tracks", post(create_track))
 }
 
 async fn create_artist(
@@ -52,49 +55,87 @@ async fn get_artists(State(state): State<Arc<AppState>>) -> Response {
         .unwrap()
 }
 
-async fn get_presigned_url(
+async fn create_album(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<CreateUploadPresignedUrlRequest>,
-) -> Response {
+    Json(payload): Json<CreateAlbumRequest>,
+) -> Result<Response, StatusCode> {
+    println!("Creating album: {}", payload.title);
     println!("Database URL: {}", state.config.database.url);
-    let uuid = Uuid::new_v4();
-    match transcode_service::get_upload_presigned_url(&payload.file_name, uuid, &state).await {
-        Ok(url) => {
-            let response_body = serde_json::to_string(&url).unwrap();
-            return Response::builder()
-                .status(200)
+
+    match metadata_service::new_album(payload.artist_id, &payload.title, &state.pg_pool).await {
+        Ok(album) => {
+            let response_body = serde_json::to_string(&album).unwrap();
+            return Ok(Response::builder()
+                .status(201)
                 .header("Content-Type", "application/json")
                 .body(response_body.into())
-                .unwrap();
+                .unwrap());
         }
         Err(e) => {
-            eprintln!("Failed to get presigned URL: {}", e);
-            return Response::builder()
-                .status(500)
-                .body("Failed to get presigned URL".into())
-                .unwrap();
+            eprintln!("Failed to create album: {}", e);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
     }
 }
 
-async fn upload_track(State(state): State<Arc<AppState>>, mut multipart: Multipart) -> Response {
-    while let Some(field) = multipart.next_field().await.unwrap() {
-        let name = field.name().unwrap_or("").to_string();
-        let file_name = field.file_name().unwrap_or("").to_string();
-        let content_type = field.content_type().unwrap_or("").to_string();
-        let data = field.bytes().await.unwrap();
+async fn get_presigned_url(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<CreateUploadPresignedUrlRequest>,
+) -> Result<Json<PresignedUrlResponse>, StatusCode> {
+    println!("Database URL: {}", state.config.database.url);
+    let upload_id = Uuid::new_v4();
+    let object_key = format!("uploads/{}/{}", upload_id, payload.file_name);
 
-        println!(
-            "Received field: name={}, file_name={}, content_type={}, size={}",
-            name,
-            file_name,
-            content_type,
-            data.len()
-        );
+    match transcode_service::get_upload_presigned_url(&payload.file_name, upload_id, &state).await {
+        Ok(presigned_url) => {
+            let response = PresignedUrlResponse {
+                presigned_url,
+                object_key,
+                upload_id,
+                expires_in_seconds: 3600,
+            };
+            Ok(Json(response))
+        }
+        Err(e) => {
+            eprintln!("Failed to get presigned URL: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
+}
 
-    Response::builder()
-        .status(200)
-        .body("Track uploaded".into())
-        .unwrap()
+async fn create_track(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<CreateTrackRequest>,
+) -> Result<Json<Track>, StatusCode> {
+    // Generate object key using upload_id and file_name
+    let object_key = format!("uploads/{}/{}", payload.upload_id, payload.file_name);
+
+    // Check if object exists
+    state
+        .s3_client
+        .head_object()
+        .bucket(&state.config.s3.bucket)
+        .key(&object_key)
+        .send()
+        .await
+        .map_err(|_| StatusCode::NOT_FOUND)?;
+
+    // Create track record with extracted duration
+    let track = metadata_service::create_track(
+        payload.album_id,
+        payload.artist_id,
+        &payload
+            .title
+            .unwrap_or_else(|| "Untitled Track".to_string()),
+        &payload.file_name,
+        payload.upload_id,
+        &state,
+    )
+    .await
+    .map_err(|e| {
+        eprintln!("Failed to create track: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(track))
 }

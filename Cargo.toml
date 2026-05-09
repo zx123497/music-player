@@ -12,6 +12,7 @@ tower = "0.5.3"
 figment = { version = "0.10.19", features = ["toml", "env"] }
 aws-sdk-s3 = { version = "1.131.0", features = ["behavior-version-latest"] }
 tower-http = { version = "0.6.8", features = ["trace", "cors", "limit", "timeout"] }
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "macros"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "macros", "uuid"] }
 dotenvy = "0.15.7"
-uuid = { version = "1.23.1", features = ["v4"] }
+uuid = { version = "1.23.1", features = ["v4", "serde"] }
+mp3-metadata = "0.3"

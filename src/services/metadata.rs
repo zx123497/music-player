@@ -1,5 +1,7 @@
-use crate::models::metadata::{Album, Artist, CreateArtistRequest};
+use crate::models::metadata::{Album, Artist, CreateArtistRequest, Track};
 use crate::repositories::metadata as metadata_repo;
+use crate::services::transcode as transcode_service;
+use crate::state;
 
 pub async fn new_artist(
     create_artist: &CreateArtistRequest,
@@ -34,17 +36,37 @@ pub async fn create_track(
     album_id: i64,
     artist_id: i64,
     title: &str,
-    duration_seconds: i32,
-    file_path: &str,
-    pool: &sqlx::PgPool,
-) -> Result<(), sqlx::Error> {
-    metadata_repo::create_track(
-        pool,
-        album_id,
+    file_name: &str,
+    upload_id: uuid::Uuid,
+    state: &state::AppState,
+) -> Result<Track, Box<dyn std::error::Error>> {
+    let object_key = format!("uploads/{}/{}", upload_id, file_name);
+    // check if upload_id exists in S3 and is valid before creating track metadata
+    let head_object_output = state
+        .s3_client
+        .head_object()
+        .bucket("soundzone")
+        .key(&object_key)
+        .send()
+        .await;
+    if head_object_output.is_err() {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Uploaded file not found in S3",
+        )));
+    }
+
+    let duration = transcode_service::get_mp3_duration(&state, &object_key).await?;
+
+    let track = metadata_repo::create_track(
+        &state.pg_pool,
         artist_id,
+        album_id,
         title,
-        duration_seconds,
-        file_path,
+        "",
+        duration,
+        upload_id,
     )
-    .await
+    .await?;
+    Ok(track)
 }

@@ -1,5 +1,7 @@
 use crate::models::metadata::{Album, Artist, CreateArtistRequest, Track};
+use axum::http::status;
 use sqlx::PgPool;
+use uuid;
 
 pub async fn create_artist(
     pool: &PgPool,
@@ -61,32 +63,35 @@ pub async fn get_albums_by_artist(
 
 pub async fn create_track(
     pool: &PgPool,
-    album_id: i64,
     artist_id: i64,
+    album_id: i64,
     title: &str,
-    duration_seconds: i32,
     file_path: &str,
-) -> Result<(), sqlx::Error> {
-    sqlx::query(
+    duration_ms: i32,
+    upload_id: uuid::Uuid,
+) -> Result<Track, Box<dyn std::error::Error>> {
+    let track = sqlx::query_as::<_, Track>(
         r#"
-        INSERT INTO metadata.tracks (album_id, artist_id, title, duration_seconds, file_path)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO metadata.tracks (artist_id, album_id, title, file_path, duration_seconds, upload_id, status)
+        VALUES ($1, $2, $3, $4, $5, $6, 'uploaded')
+        RETURNING id, album_id, artist_id, title, duration_seconds, file_path, upload_id, status
         "#,
     )
-    .bind(album_id)
     .bind(artist_id)
+    .bind(album_id)
     .bind(title)
-    .bind(duration_seconds)
     .bind(file_path)
-    .execute(pool)
+    .bind(duration_ms)
+    .bind(upload_id)
+    .fetch_one(pool)
     .await?;
-    Ok(())
+    Ok(track)
 }
 
 pub async fn get_tracks_by_album(pool: &PgPool, album_id: i64) -> Result<Vec<Track>, sqlx::Error> {
     let tracks = sqlx::query_as::<_, Track>(
         r#"
-        SELECT id, album_id, artist_id, title, duration_seconds, file_path FROM metadata.tracks
+        SELECT id, album_id, artist_id, title, duration_seconds, file_path, upload_id, status FROM metadata.tracks
         WHERE album_id = $1
         "#,
     )
