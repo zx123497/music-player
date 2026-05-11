@@ -2,7 +2,7 @@ use crate::models::metadata::{
     CreateAlbumRequest, CreateArtistRequest, CreateTrackRequest, CreateUploadPresignedUrlRequest,
     PresignedUrlResponse, Track,
 };
-use crate::services::{metadata as metadata_service, transcode as transcode_service};
+use crate::services::{metadata as metadata_service, transcode_services as transcode_service};
 use crate::state::AppState;
 use axum::{
     Router,

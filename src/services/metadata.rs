@@ -1,6 +1,6 @@
 use crate::models::metadata::{Album, Artist, CreateArtistRequest, Track};
 use crate::repositories::metadata as metadata_repo;
-use crate::services::transcode as transcode_service;
+use crate::services::transcode_services as transcode_service;
 use crate::state;
 
 pub async fn new_artist(
