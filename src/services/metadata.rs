@@ -68,5 +68,17 @@ pub async fn create_track(
         upload_id,
     )
     .await?;
+    // need to trigger transcode job after creating track metadata
+    let job = crate::services::transcode::queue::TranscodeJob {
+        track_id: track.id,
+        upload_id,
+        file_name: file_name.to_string(),
+    };
+    state
+        .transcode_thread_pool
+        .sender
+        .send(job)
+        .await
+        .expect("Failed to send transcode job to thread pool");
     Ok(track)
 }

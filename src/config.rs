@@ -12,6 +12,7 @@ pub struct Config {
     pub redis: RedisConfig,
     pub s3: S3Config,
     pub jwt: JwtConfig,
+    pub transcode: TranscodeConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -38,6 +39,11 @@ pub struct S3Config {
     pub secret_key: String,
     pub bucket: String,
     pub use_path_style: bool,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct TranscodeConfig {
+    pub worker_size: usize,
 }
 
 #[derive(Debug, Deserialize, Clone)]

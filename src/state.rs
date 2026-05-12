@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::services::transcode::queue::ThreadPool;
 use aws_sdk_s3::Client as S3Client;
 use aws_sdk_s3::config::{Builder, Credentials, Region};
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -9,6 +10,7 @@ pub struct AppState {
     pub config: Config,
     pub s3_client: S3Client,
     pub pg_pool: PgPool,
+    pub transcode_thread_pool: ThreadPool,
 }
 
 pub async fn create_app_state(config: Config) -> Arc<AppState> {
@@ -20,11 +22,21 @@ pub async fn create_app_state(config: Config) -> Arc<AppState> {
         .connect(&database_url)
         .await
         .expect("Failed to create PostgreSQL connection pool");
+    let bucket = config.s3.bucket.clone();
+    let worker_size = config.transcode.worker_size;
+
+    let transcode_thread_pool = ThreadPool::new(
+        worker_size,
+        s3_client.clone(),
+        pg_pool.clone(),
+        bucket,
+    );
 
     Arc::new(AppState {
         config,
         s3_client,
         pg_pool,
+        transcode_thread_pool,
     })
 }
 
