@@ -100,3 +100,16 @@ pub async fn get_tracks_by_album(pool: &PgPool, album_id: i64) -> Result<Vec<Tra
     .await?;
     Ok(tracks)
 }
+
+pub async fn get_track_by_id(pool: &PgPool, track_id: i64) -> Result<Track, sqlx::Error> {
+    let track = sqlx::query_as::<_, Track>(
+        r#"
+        SELECT id, album_id, artist_id, title, duration_seconds, file_path, upload_id, status FROM metadata.tracks
+        WHERE id = $1
+        "#,
+    )
+    .bind(track_id)
+    .fetch_one(pool)
+    .await?;
+    Ok(track)
+}
