@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 pub fn create_router() -> Router<Arc<AppState>> {
     Router::new().route(
-        "/:track_id/presignurl",
+        "/tracks/{track_id}/presigned-url",
         axum::routing::get(stream_track_presignurl),
     )
 }
